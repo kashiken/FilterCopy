@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="256" height="256">
+  <!-- Folder + filter badge. Paths are shared with the reproducible ICO generator. -->
+  <path fill="#B87510" d="M6 13 Q6 9 10 9 H24 L30 15 H52 Q56 15 56 19 V48 Q56 52 52 52 H10 Q6 52 6 48 Z"/>
+  <path fill="#FFD270" d="M6 21 Q6 17 10 17 H24 L29 21 H52 Q56 21 56 25 V48 Q56 52 52 52 H10 Q6 52 6 48 Z"/>
+  <path fill="#F4B544" d="M6 30 H56 V48 Q56 52 52 52 H10 Q6 52 6 48 Z"/>
+  <path fill="#123751" d="M62 44 A18 18 0 1 1 26 44 A18 18 0 1 1 62 44 Z"/>
+  <path fill="#27B7C5" d="M59 44 A15 15 0 1 1 29 44 A15 15 0 1 1 59 44 Z"/>
+  <path fill="#FFFFFF" d="M34 35 H54 L47 44 V51 L41 54 V44 Z"/>
+</svg>

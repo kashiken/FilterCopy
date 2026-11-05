@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\FilterCopy.ico</ApplicationIcon>
+    <!-- The counter is committed only after a successful real application build. -->
+    <_LastMinor>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/version.txt').Trim())</_LastMinor>
+    <_NextMinor>$([MSBuild]::Add($(_LastMinor), 1))</_NextMinor>
+    <Version>1.$(_NextMinor)</Version>
+    <AssemblyVersion>1.$(_NextMinor).0.0</AssemblyVersion>
+    <FileVersion>1.$(_NextMinor).0.0</FileVersion>
+    <InformationalVersion>1.$(_NextMinor)</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <PathMap>$(MSBuildProjectDirectory)=/_/FilterCopy</PathMap>
+    <Authors>FilterCopy contributors</Authors>
+    <Copyright>Copyright (c) 2026 FilterCopy contributors</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Company>FilterCopy</Company>
+    <Product>FilterCopy</Product>
+    <Description>Filter files before copying with Windows Shell.</Description>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+  <ItemGroup><Compile Remove="Tests\**" /></ItemGroup>
+  <ItemGroup><Using Remove="System.Windows.Forms"/><Using Remove="System.Drawing"/></ItemGroup>
+  <ItemGroup><Resource Include="Assets\FilterCopy.ico" /></ItemGroup>
+  <ItemGroup><EmbeddedResource Include="LICENSE" LogicalName="FilterCopy.LICENSE" /></ItemGroup>
+  <Target Name="RecordBuildVersion" AfterTargets="Build" Condition="'$(MSBuildProjectName)' == 'FilterCopy' and '$(DesignTimeBuild)' != 'true'">
+    <WriteLinesToFile File="$(MSBuildProjectDirectory)/version.txt" Lines="$(_NextMinor)" Overwrite="true" Encoding="UTF-8" />
+    <Message Text="FilterCopy version $(Version)" Importance="high" />
+  </Target>
+</Project>
