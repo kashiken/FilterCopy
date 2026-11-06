@@ -22,7 +22,7 @@ public partial class MainWindow : Window
     private List<string> warnings = [];
     private bool ready, busy, restoring;
     private FilterSettings? lastValidSettings;
-    private FilterSettings Settings => new(Search.Text, RegexToggle.IsChecked == true, CaseToggle.IsChecked == true, PathToggle.IsChecked == true, WildcardToggle.IsChecked == true);
+    private FilterSettings Settings => new(Search.Text, RegexToggle.IsChecked == true, CaseToggle.IsChecked == true, PathToggle.IsChecked == true, WildcardToggle.IsChecked == true, Exclude.Text);
 
     public MainWindow(string destination)
     {
@@ -30,8 +30,8 @@ public partial class MainWindow : Window
         Title = $"FilterCopy {AppVersion.Current} — フィルタして貼り付け";
         this.destination = Path.GetFullPath(destination);
         DestinationLabel.Text = "コピー先: " + this.destination;
-        Search.ItemsSource = HistoryStore.Load();
-        Search.DisplayMemberPath = nameof(FilterSettings.Text);
+        var history = HistoryStore.Load();
+        Search.ItemsSource = Exclude.ItemsSource = history;
         Loaded += LoadFiles;
     }
 
@@ -62,13 +62,14 @@ public partial class MainWindow : Window
 
     private void HistorySelected(object sender, SelectionChangedEventArgs e)
     {
-        if (Search.SelectedItem is not FilterSettings settings) return;
+        if (restoring || (sender as ComboBox)?.SelectedItem is not FilterSettings settings) return;
         restoring = true;
         if (settings.Regex) RegexToggle.IsChecked = true;
         else if (settings.Wildcard) WildcardToggle.IsChecked = true;
         else NormalToggle.IsChecked = true;
         CaseToggle.IsChecked = settings.MatchCase; PathToggle.IsChecked = settings.RelativePath;
         Search.Text = settings.Text;
+        Exclude.Text = settings.ExcludeText;
         restoring = false;
         if (ready) ApplyFilter();
     }
@@ -138,7 +139,7 @@ public partial class MainWindow : Window
     }
     private void SetEditing(bool enabled)
     {
-        Search.IsEnabled = NormalToggle.IsEnabled = WildcardToggle.IsEnabled = RegexToggle.IsEnabled = CaseToggle.IsEnabled = PathToggle.IsEnabled = CancelButton.IsEnabled = enabled;
+        Search.IsEnabled = Exclude.IsEnabled = NormalToggle.IsEnabled = WildcardToggle.IsEnabled = RegexToggle.IsEnabled = CaseToggle.IsEnabled = PathToggle.IsEnabled = CancelButton.IsEnabled = enabled;
         CopyButton.IsEnabled = enabled && matches.Count > 0;
     }
     private void ShowWarnings(object sender, RoutedEventArgs e) => Notice.Show(this, string.Join(Environment.NewLine, warnings.Take(100)), "走査の詳細（先頭100件）");
@@ -148,7 +149,7 @@ public partial class MainWindow : Window
     {
         if (busy) { e.Cancel = true; return; }
         lifetime.Cancel(); filtering?.Cancel();
-        if (lastValidSettings is { Text.Length: > 0 })
+        if (lastValidSettings is { } valid && (valid.Text.Length > 0 || valid.ExcludeText.Length > 0))
         {
             try { HistoryStore.Save(lastValidSettings); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* Closing remains possible if settings are read-only. */ }

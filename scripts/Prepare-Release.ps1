@@ -54,7 +54,7 @@ if ($hasBundledRuntime) {
         if (-not (Get-ChildItem -LiteralPath $licenseDirectory -File)) { throw "Runtime license missing: $packName" }
     }
 }
-Copy-Item -LiteralPath (Join-Path $projectRoot 'docs\DISTRIBUTION.md') -Destination (Join-Path $packageDirectory 'README.md')
+Copy-Item -LiteralPath (Join-Path $projectRoot 'docs\USER_GUIDE.md') -Destination (Join-Path $packageDirectory 'README.md')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'LICENSE') -Destination $packageDirectory
 $zip = Join-Path $releaseDirectory ($baseName + '.zip')
 if (Test-Path -LiteralPath $zip) { throw "Archive already exists: $zip" }
@@ -68,7 +68,7 @@ try {
 } finally { $archive.Dispose() }
 $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
 [IO.File]::WriteAllText(($zip + '.sha256'), ($hash + '  ' + [IO.Path]::GetFileName($zip) + "`n"), [Text.Encoding]::ASCII)
-$notes = "# FilterCopy $version`n`nWindows x64 / $flavor`n`n- Normal, wildcard and regular-expression filters with history.`n- Expanded file tree and Shell batch copy preserving folder structure.`n- System light/dark theme and Explorer context menu / Ctrl+Alt+V integration.`n`nSee README.md inside the ZIP for setup. Unsigned build.`n"
+$notes = "# FilterCopy $version`n`nWindows x64 / $flavor`n`n- Include/exclude filters with normal, wildcard and regular-expression modes, saved together in history.`n- Expanded file tree and Shell batch copy preserving folder structure.`n- System light/dark theme and Explorer context menu / Ctrl+Alt+V integration.`n`nSee the user guide in README.md inside the ZIP for setup. Unsigned build.`n"
 [IO.File]::WriteAllText((Join-Path $releaseDirectory ($baseName + '-notes.md')), $notes, [Text.UTF8Encoding]::new($false))
 Write-Host "Created: $zip"
 Write-Host "SHA256: $hash"

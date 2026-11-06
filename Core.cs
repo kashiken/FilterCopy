@@ -1,11 +1,16 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace FilterCopy;
 
 public record FileEntry(string Source, string Relative);
-public record FilterSettings(string Text = "", bool Regex = false, bool MatchCase = false, bool RelativePath = false, bool Wildcard = false);
+public record FilterSettings(string Text = "", bool Regex = false, bool MatchCase = false, bool RelativePath = false, bool Wildcard = false, string ExcludeText = "")
+{
+    [JsonIgnore]
+    public string HistoryDescription => $"含める: {(Text.Length == 0 ? "すべて" : Text)} / 除外: {(ExcludeText.Length == 0 ? "なし" : ExcludeText)}";
+}
 public record ScanResult(List<FileEntry> Files, List<string> Warnings);
 
 public static class FileCatalog
@@ -56,23 +61,37 @@ public static class FileCatalog
 
     public static List<FileEntry> Filter(IEnumerable<FileEntry> files, FilterSettings settings, CancellationToken token)
     {
-        Regex? expression = null;
-        if (settings.Text.Length > 0 && (settings.Regex || settings.Wildcard))
-        {
-            var pattern = settings.Regex ? settings.Text
-                : @"\A" + Regex.Escape(settings.Text).Replace(@"\*", ".*").Replace(@"\?", ".") + @"\z";
-            var options = settings.MatchCase ? RegexOptions.None : RegexOptions.IgnoreCase;
-            if (!settings.Regex) options |= RegexOptions.NonBacktracking | RegexOptions.Singleline | RegexOptions.CultureInvariant;
-            expression = new Regex(pattern, options, TimeSpan.FromMilliseconds(200));
-        }
+        token.ThrowIfCancellationRequested();
+        var include = CreateMatcher(settings.Text, true, "含める条件");
+        var exclude = CreateMatcher(settings.ExcludeText, false, "除外条件");
         var result = new List<FileEntry>();
         foreach (var file in files)
         {
             token.ThrowIfCancellationRequested();
             var text = settings.RelativePath ? file.Relative : Path.GetFileName(file.Source);
-            if (settings.Text.Length == 0 || (expression is not null ? expression.IsMatch(text) : text.Contains(settings.Text, settings.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase))) result.Add(file);
+            if (include(text) && !exclude(text)) result.Add(file);
         }
         return result;
+
+        Func<string, bool> CreateMatcher(string condition, bool emptyMatches, string label)
+        {
+            if (condition.Length == 0) return _ => emptyMatches;
+            Regex? expression = null;
+            if (settings.Regex || settings.Wildcard)
+            {
+                var pattern = settings.Regex ? condition
+                    : @"\A" + Regex.Escape(condition).Replace(@"\*", ".*").Replace(@"\?", ".") + @"\z";
+                var options = settings.MatchCase ? RegexOptions.None : RegexOptions.IgnoreCase;
+                if (!settings.Regex) options |= RegexOptions.NonBacktracking | RegexOptions.Singleline | RegexOptions.CultureInvariant;
+                try { expression = new Regex(pattern, options, TimeSpan.FromMilliseconds(200)); }
+                catch (ArgumentException ex) { throw new ArgumentException($"{label}: {ex.Message}", ex); }
+            }
+            return text =>
+            {
+                try { return expression is not null ? expression.IsMatch(text) : text.Contains(condition, settings.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase); }
+                catch (RegexMatchTimeoutException ex) { throw new ArgumentException($"{label}: 正規表現の処理時間が上限を超えました。", ex); }
+            };
+        }
     }
 
     public static List<(string Source, string Destination)> Plan(IEnumerable<FileEntry> files, string destination)
